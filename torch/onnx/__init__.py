@@ -53,7 +53,7 @@ def export(model, args, f, export_params=True, verbose=False, training=TrainingM
            input_names=None, output_names=None, operator_export_type=OperatorExportTypes.ONNX,
            opset_version=None, do_constant_folding=True, dynamic_axes=None,
            keep_initializers_as_inputs=None, custom_opsets=None,
-           export_modules_as_functions=False):
+           export_modules_as_functions=False, set_onnx_output=True):
     r"""
     Exports a model into ONNX format. If ``model`` is not a
     :class:`torch.jit.ScriptModule` nor a :class:`torch.jit.ScriptFunction`, this runs
@@ -333,7 +333,7 @@ def export(model, args, f, export_params=True, verbose=False, training=TrainingM
                         input_names, output_names, operator_export_type, opset_version,
                         do_constant_folding, dynamic_axes,
                         keep_initializers_as_inputs, custom_opsets,
-                        export_modules_as_functions)
+                        export_modules_as_functions, set_onnx_output)
 
 
 def export_to_pretty_string(*args, **kwargs) -> str:

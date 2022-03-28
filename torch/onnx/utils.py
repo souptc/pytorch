@@ -120,13 +120,14 @@ def export(model, args, f, export_params=True, verbose=False, training=None,
            input_names=None, output_names=None, operator_export_type=OperatorExportTypes.ONNX,
            opset_version=None, do_constant_folding=True, dynamic_axes=None,
            keep_initializers_as_inputs=None, custom_opsets=None,
-           export_modules_as_functions=False):
+           export_modules_as_functions=False, set_onnx_output=True):
 
     _export(model, args, f, export_params, verbose, training, input_names, output_names,
             operator_export_type=operator_export_type, opset_version=opset_version,
             do_constant_folding=do_constant_folding, dynamic_axes=dynamic_axes,
             keep_initializers_as_inputs=keep_initializers_as_inputs,
-            custom_opsets=custom_opsets, export_modules_as_functions=export_modules_as_functions)
+            custom_opsets=custom_opsets, export_modules_as_functions=export_modules_as_functions,
+            set_onnx_output=set_onnx_output)
 
 
 def _is_constant_tensor_list(node):
@@ -524,7 +525,7 @@ def _model_to_graph(model, args, verbose=False,
                     operator_export_type=OperatorExportTypes.ONNX,
                     do_constant_folding=True,
                     _disable_torch_constant_prop=False, fixed_batch_size=False,
-                    training=None, dynamic_axes=None):
+                    training=None, dynamic_axes=None, set_onnx_output=True):
     r"""Converts model into an ONNX graph.
 
     Returns:
@@ -555,7 +556,7 @@ def _model_to_graph(model, args, verbose=False,
         torch.onnx.log("Torch IR graph at exception: ", graph)
         raise
     from torch.onnx.symbolic_helper import _onnx_shape_inference
-    if isinstance(model, torch.jit.ScriptModule) or isinstance(model, torch.jit.ScriptFunction):
+    if set_onnx_output and (isinstance(model, torch.jit.ScriptModule) or isinstance(model, torch.jit.ScriptFunction)):
         example_outputs = _get_example_outputs(model, args)
         example_outputs_final = ()
         for example_output in example_outputs:
@@ -569,7 +570,7 @@ def _model_to_graph(model, args, verbose=False,
 
     # NB: ONNX requires complete information about output types, which might be
     # erased by some optimizations, so we need to set it explicitly again.
-    if torch_out is not None:
+    if set_onnx_output and torch_out is not None:
         if not (isinstance(torch_out, list) or isinstance(torch_out, tuple)):
             output_wrapped = [torch_out]
         else:
@@ -614,7 +615,7 @@ def export_to_pretty_string(model, args, export_params=True, verbose=False, trai
                             input_names=None, output_names=None, operator_export_type=OperatorExportTypes.ONNX,
                             export_type=ExportTypes.PROTOBUF_FILE, google_printer=False, opset_version=None,
                             keep_initializers_as_inputs=None, custom_opsets=None, add_node_names=True,
-                            do_constant_folding=True, dynamic_axes=None):
+                            do_constant_folding=True, dynamic_axes=None, set_onnx_output=True):
     from torch.onnx.symbolic_helper import _default_onnx_opset_version, _set_opset_version
     from torch.onnx.symbolic_helper import _set_operator_export_type
     if opset_version is None:
@@ -635,7 +636,8 @@ def export_to_pretty_string(model, args, export_params=True, verbose=False, trai
         graph, params_dict, torch_out = _model_to_graph(model, args, verbose, input_names,
                                                         output_names, operator_export_type,
                                                         val_do_constant_folding,
-                                                        training=training, dynamic_axes=dynamic_axes)
+                                                        training=training, dynamic_axes=dynamic_axes,
+                                                        set_onnx_output=set_onnx_output)
 
         return graph._pretty_print_onnx(params_dict, opset_version, False,
                                         operator_export_type, google_printer,
@@ -744,7 +746,7 @@ def _export(model, args, f, export_params=True, verbose=False, training=None,
             export_type=ExportTypes.PROTOBUF_FILE, opset_version=None,
             do_constant_folding=True, dynamic_axes=None, keep_initializers_as_inputs=None,
             fixed_batch_size=False, custom_opsets=None, add_node_names=True,
-            onnx_shape_inference=True, export_modules_as_functions=False):
+            onnx_shape_inference=True, export_modules_as_functions=False, set_onnx_output=True):
 
     if export_modules_as_functions and opset_version < 15:
         raise ValueError("`export_modules_as_functions` is not supported for `opset_version` < 15."
@@ -805,7 +807,8 @@ def _export(model, args, f, export_params=True, verbose=False, training=None,
                                 val_do_constant_folding,
                                 fixed_batch_size=fixed_batch_size,
                                 training=training,
-                                dynamic_axes=dynamic_axes)
+                                dynamic_axes=dynamic_axes,
+                                set_onnx_output=set_onnx_output)
 
             # TODO: Don't allocate a in-memory string for the protobuf
             defer_weight_export = export_type is not ExportTypes.PROTOBUF_FILE
